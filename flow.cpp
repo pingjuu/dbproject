@@ -46,15 +46,12 @@ void flowContent::bytes_initial(){
 }
 
 void flow(const u_char* packet, struct pcap_pkthdr* header, int ctrl_bytes){
-    //std::cout<<"thread1 : this packet is tcp \n";
+    
     uint32_t insertIP = address_ToCompare(packet);
-    //std::cout<<"thread1 insert IP: "<< insertIP<<std::endl;
     if(insertIP != -1){      // 들어온 패킷의 ip와 제어할 ip가 일치하는 경우
 
         flowInfo f;
         f.flowinsert(ntohl(insertIP));
-        //printf("flow insert functions\n");
-        //std::cout<<"thread1 : f.flow insert ok \n";
         FLOW_MAP::iterator iter= ipmap.find(f);
         if(iter == ipmap.end()){   //  ipmap에 없으면 (즉 받아오는 패킷이 첫 control ip의 패킷이면 ipmap에 넣기)
             flowContent content;
@@ -76,7 +73,6 @@ void flow(const u_char* packet, struct pcap_pkthdr* header, int ctrl_bytes){
         std::cout<<a<<":"<< iter->second._bytes()<<std::endl;
         std::cout<<"thread1 : second flow add ok \n";
     }
-    //std::cout<<"thread1 : packetflow end \n";
 }
 
 uint32_t address_ToCompare(const u_char* packet){   //들어온 패킷의 ip와 제어할 ip가 일치하는지 비교
@@ -87,59 +83,16 @@ uint32_t address_ToCompare(const u_char* packet){   //들어온 패킷의 ip와 
     for(iter=(control_ip).begin();iter!=(control_ip).end(); iter++){
         //printf("good\n");
         if((ntohl(ipPacket->ip_src)==*iter)||(ntohl(ipPacket->ip_dst)==*iter)){
-            //printf("good\n");
-            //std::cout<<"* sip: "<< Ip(ntohl(ipPacket->ip_src))<<std::endl;
-            //std::cout<<"* dip: "<< Ip(ntohl(ipPacket->ip_dst))<<std::endl;
-            //std::cout<<"* iter: "<< Ip(*iter)<<std::endl;
             return *iter;
         }
     }
     return -1;
 }
-/*
-int packetProcess(int ctrl_bytes, pcap_t* handle){
-    std::cout<<"thread1 : packetProcess\n";
-    while (packetcontroler) {
-        //packet processing
-        std::cout<<"thread1 : packet while start\n";
-        struct pcap_pkthdr* header;
-        const u_char* packet;
-        int res = pcap_next_ex(handle, &header, &packet);
-        printf("thread1 : packet startinn\n");
-        if (res == 0) {
-            printf("res = 0\n");
-            continue;
-        }
-        if (res == -1 || res == -2) {
-            printf("pcap_next_ex return %d(%s)\n", res, pcap_geterr(handle));
-            break;
-        }
-        printf("res : %d\n",res);
-
-        struct ethernet_hdr *etherPacket = (struct ethernet_hdr *)packet;
-        if((ntohs(etherPacket->ether_type)!=ETHERTYPE_IP)&&(ntohs(etherPacket->ether_type)!=ARP_P)){
-            std::cout<<"thread1 : this is not ethernet Packet\n";
-            continue;
-        }
-        if((ntohs(etherPacket->ether_type)==ETHERTYPE_IP)){
-            struct ipv4_hdr *ipPacket = (struct ipv4_hdr*)(packet + 14);
-            if((ipPacket->ip_p == P_TCP)||(ipPacket->ip_p == P_UDP))
-               flow(packet, header, ctrl_bytes);    //packet flow 처리하기
-        }
-       
-    }
-    std::cout<<"thread1 : packetProcess end \n";
-}
-*/
 
 int packetProcess(int ctrl_bytes, const u_char* packet, struct pcap_pkthdr* header){
-    //std::cout<<"thread1 : packetProcess\n";
-    //packet processing
-    //std::cout<<"thread1 : packet while start\n";
 
     struct ethernet_hdr *etherPacket = (struct ethernet_hdr *)packet;
     if((ntohs(etherPacket->ether_type)!=ETHERTYPE_IP)&&(ntohs(etherPacket->ether_type)!=ARP_P)){
-        //std::cout<<"thread1 : this is not ethernet Packet\n";
         return -1;
     }
     if((ntohs(etherPacket->ether_type)==ETHERTYPE_IP)){

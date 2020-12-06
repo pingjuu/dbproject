@@ -8,8 +8,6 @@
 #include <time.h>
 #include <stdlib.h>
 #include <string>
-
-//#include "flow.h"
 #include "network.h"
 #include "ip.h"
 #include "/usr/include/mariadb/mysql.h"

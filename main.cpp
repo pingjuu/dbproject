@@ -14,6 +14,9 @@
 #define VECTOR std::vector<uint32_t>
 #define SVECTOR std::vector<std::string>
 #define MAP std::map<Ip, Mac>
+SVECTOR scontrol_ip;  //제어 목록 type string
+VECTOR control_ip;    //제어 목록 type uint32_t
+MAP control_mac;    //제어할 ip의 mac주소
 
 bool ARPcontroler = true;
 bool packetcontroler = true;
@@ -22,9 +25,6 @@ char* server = "localhost";
 char* username = "mp";
 char* password = "123";
 char* db = "dbinfosec";
-SVECTOR scontrol_ip;  //제어 목록
-VECTOR control_ip;
-MAP control_mac;    //제어할 ip의 mac주소
 
 std::thread t1;
 std::thread t2;
@@ -36,13 +36,8 @@ void usage() {
 }
 
 int main(int argc, char* argv[]) {
-    //DB connection
-    /*
-    sql::Driver *driver;
-    sql::Connection *con;
-    sql::PreparedStatement *pstmt;
-    sql::ResultSet *result;
-    */
+    //for DB connection
+    
     MYSQL *conn;
     MYSQL_RES *res;
     MYSQL_ROW row;
@@ -54,7 +49,7 @@ int main(int argc, char* argv[]) {
     printf("mysql_init sucsess.\n");
 
     if(!mysql_real_connect(conn, server, username, password, db, 8000, NULL, 0)){
-        printf("connect error.\n");     //DB접속 (MYSQL*, host, id, pw, null, port, 0)
+        printf("connect error.\n");     //DB접속 (MYSQL*, host, id, pw, database name, port, null, 0)
         return -1;
     }
     printf("mysql_real_connect suc.\n");
@@ -68,33 +63,13 @@ int main(int argc, char* argv[]) {
     int ctrl_bytes = std::stoi(argv[argc-1]) * 1000000;
     const int ip_count = argc-2;
     SVECTOR::iterator it;
-    for(int i=0; i<ip_count; i++){
+    for(int i=0; i<ip_count; i++)
         scontrol_ip.push_back(argv[i+1]);
 
-    }
-    //printf("control_ip size : %d",scontrol_ip.size() );
-    for(it = scontrol_ip.begin(); it!=scontrol_ip.end(); it++){
-        std::cout<<"control ip ! : "<<*it<<std::endl;
-    }
-    //printf("scontrol_ip size : %d\n",scontrol_ip.size() );
-    //printf("control_ip size : %d\n",control_ip.size() );
-    for(it = scontrol_ip.begin(); it!=scontrol_ip.end(); it++){
+    for(it = scontrol_ip.begin(); it!=scontrol_ip.end(); it++)
         control_ip.push_back(Ip(*it));
-    }
-    //printf("control_ip size : %d",control_ip.size() );
-    //printf("ok \n");
-    VECTOR::iterator iter;
-    //printf("ok \n");
-    for(iter = control_ip.begin(); iter!=control_ip.end(); iter++){
-        std::cout<<"control ip ! : "<<Ip(*iter)<<std::endl;
 
-    }
-
-
-    //pcap_open_live로 나중에 바꿀거임
-    //const char* fname = argv[1];
     char errbuf[PCAP_ERRBUF_SIZE];
-    //pcap_t* handle = pcap_open_offline(fname, errbuf);
 
     pcap_t* handle =pcap_open_live("eth0", BUFSIZ, 1, 1000, errbuf);
     if (handle == NULL) {
@@ -103,9 +78,7 @@ int main(int argc, char* argv[]) {
     }
     
     forMAC_ARPreq(handle);  //네트워크 상에 arp requst보내기
-    printf("main : arp request ok\n");
-    int reply_count = 0;
-    printf("main : control ip : %d", control_ip.size());
+    int reply_count = 0;//controlled ip해당 reply 받은 개수 
     while(reply_count<control_ip.size()){    //request받은거에 대한 arp reply 받는 작업
         printf("main : arp reply ready\n");
         struct pcap_pkthdr* header;
@@ -121,20 +94,15 @@ int main(int argc, char* argv[]) {
             if(reply_packet.arp_.op_== htons(ArpHdr::Reply)){
                 //arp request가 control ip 꺼인건지 확인해야함(문제 되었을 때 하기)
                 printf("main : arp reply!!!\n");
-                reply_count++;
+                reply_count++;  //controlled ip 개수 만큼 받기 위함
                 control_mac.insert(std::make_pair(ntohl(reply_packet.arp_.sip_), reply_packet.arp_.smac_));
-                //break;
                 }
             }
         printf("main : arp reply reeeeeeeady\n");
-        //sleep(1);
     }
-    printf("control mac size :  %d \n", control_mac.size());
-    printf("main : thread 2 begin\n");
+    //flow와 독립적으로 이루어져야 하기 때문에 스레드 처리하기
     t2=std::thread(sendARP, handle);
-    printf("thread 3 begin\n");
-    t3=std::thread(time_check, conn, ctrl_bytes, handle); //flow와 독립적으로 이루어져야 하기 때문에 스레드 처리하기
-
+    t3=std::thread(time_check, conn, ctrl_bytes, handle); 
 
     while(packetcontroler){
         struct pcap_pkthdr* header;
@@ -145,11 +113,8 @@ int main(int argc, char* argv[]) {
         t1.join();
     }
 
-
-
     pcap_close(handle);
     
-    //t1.join();
     t2.join();
     t3.join();
 

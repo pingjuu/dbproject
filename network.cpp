@@ -121,18 +121,14 @@ void sendARP(pcap_t* handle){
     Spoofing_packet.arp_.op_ = htons(ArpHdr::Reply);
 
     Spoofing_packet.eth_.smac_ = Mac(me_mac);
-    Spoofing_packet.arp_.smac_ = Mac("00:e0:4c:36:03:5a");  //일부로 이상한 값 넣어서 라파에 패킷이 안오도록한다.
+    Spoofing_packet.arp_.smac_ = Mac("00:e0:4c:36:03:5a");  //라파와 다른 mac 주소를 넣어서 라파에 패킷이 안오도록한다.
     Spoofing_packet.arp_.sip_ = htonl(Ip("192.168.0.1"));
     printf("thread2 : arp packet ready\n");
     while(ARPcontroler){
-        printf("arp controler while \n");
-        printf("control vector size : %d\n",control_vector.size());
-        if(control_vector.size() <=1){
+        if(control_vector.size() <=1){  //vector가 비어있는 경우
             sleep(1);
-            printf("control vector empty\n");
             continue;
         }
-        printf("Noooo empty \n");
         for(iter=control_vector.begin(); iter!=control_vector.end(); iter++){
             Mac tm = control_mac[*iter];
             Spoofing_packet.eth_.dmac_ = tm;
