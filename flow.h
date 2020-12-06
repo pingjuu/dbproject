@@ -6,7 +6,10 @@
 #include <string>
 #include <arpa/inet.h>
 #include <map>
+#include <arpa/inet.h>
 #include "headers.h"
+#include "ip.h"
+
 #define VECTOR std::vector<uint32_t>
 #define FLOW_MAP std::map<flowInfo, flowContent>
 
@@ -46,4 +49,4 @@ public:
 void network_stop();
 uint32_t address_ToCompare(const u_char* packet);
 void flow(const u_char* packet, struct pcap_pkthdr* header, int ctrl_bytes);
-int packetProcess(const char* fname, int ctrl_bytes, pcap_t* handle);
+int packetProcess(int ctrl_bytes, const u_char* packet, struct pcap_pkthdr* header);
