@@ -6,11 +6,9 @@
 #include <map>
 #include <vector>
 #include <cstring>
-//#include <thread>
 #include "ip.h"
 #include <arpa/inet.h>
 #include "initial.h"
-//#include "network.h"
 #define VECTOR std::vector<uint32_t>
 #define SVECTOR std::vector<std::string>
 #define MAP std::map<Ip, Mac>
@@ -21,7 +19,7 @@ MAP control_mac;    //제어할 ip의 mac주소
 bool ARPcontroler = true;
 bool packetcontroler = true;
 
-char* server = "localhost";
+char* server = "localhost";     //db connection을 위한 db정보
 char* username = "mp";
 char* password = "123";
 char* db = "dbinfosec";
@@ -60,51 +58,50 @@ int main(int argc, char* argv[]) {
         return -1;
     }
     // ip db에서 가져오기 
-    int ctrl_bytes = std::stoi(argv[argc-1]) * 1000000;
+    int ctrl_bytes = std::stoi(argv[argc-1]) * 1000000;     //MB -> Byte
     const int ip_count = argc-2;
     SVECTOR::iterator it;
-    for(int i=0; i<ip_count; i++)
+    for(int i=0; i<ip_count; i++)                //string으로 받아온 ip vector
         scontrol_ip.push_back(argv[i+1]);
 
-    for(it = scontrol_ip.begin(); it!=scontrol_ip.end(); it++)
+    for(it = scontrol_ip.begin(); it!=scontrol_ip.end(); it++)  //string-> uint32_t
         control_ip.push_back(Ip(*it));
 
     char errbuf[PCAP_ERRBUF_SIZE];
 
-    pcap_t* handle =pcap_open_live("eth0", BUFSIZ, 1, 1000, errbuf);
+    pcap_t* handle =pcap_open_live("eth0", BUFSIZ, 1, 1000, errbuf); //packet capture를 위한 pcap open
     if (handle == NULL) {
         fprintf(stderr, "pcap_open_live eth0 return nullptr - %s\n", errbuf);
         return -1;
     }
     
-    forMAC_ARPreq(handle);  //네트워크 상에 arp requst보내기
-    int reply_count = 0;//controlled ip해당 reply 받은 개수 
-    while(reply_count<control_ip.size()){    //request받은거에 대한 arp reply 받는 작업
+    forMAC_ARPreq(handle);      // mac 주소를 얻기위해 네트워크 상에 arp requst보내기
+    int reply_count = 0;        //controlled ip 대한 reply 받은 개수 
+    while(reply_count<control_ip.size()){    //request 보낸 것에 대한 arp reply 받는 작업
         printf("main : arp reply ready\n");
         struct pcap_pkthdr* header;
         const u_char* packet;
-        int res = pcap_next_ex(handle, &header, &packet);
+        int res = pcap_next_ex(handle, &header, &packet);       // 흘러들어오는 패킷 하나씩 받아오기
         if (res == 0) continue;
         if (res == -1 || res == -2) {
             printf("pcap_next_ex return %d(%s)\n", res, pcap_geterr(handle));
             break;
         }
         EthArpPacket reply_packet= *(EthArpPacket*)packet;
-        if (reply_packet.eth_.type_ == htons(EthHdr::Arp)){
-            if(reply_packet.arp_.op_== htons(ArpHdr::Reply)){
-                //arp request가 control ip 꺼인건지 확인해야함(문제 되었을 때 하기)
+        if (reply_packet.eth_.type_ == htons(EthHdr::Arp)){ 
+            if(reply_packet.arp_.op_== htons(ArpHdr::Reply)){       // 들어온 패킷이 arp reply인경우
                 printf("main : arp reply!!!\n");
-                reply_count++;  //controlled ip 개수 만큼 받기 위함
-                control_mac.insert(std::make_pair(ntohl(reply_packet.arp_.sip_), reply_packet.arp_.smac_));
-                }
+                reply_count++;  //받아온 arp reply 개수
+                control_mac.insert(std::make_pair(ntohl(reply_packet.arp_.sip_), reply_packet.arp_.smac_));  //해당 ip와 mac주소 저장
             }
+        }
         printf("main : arp reply reeeeeeeady\n");
     }
     //flow와 독립적으로 이루어져야 하기 때문에 스레드 처리하기
-    t2=std::thread(sendARP, handle);
-    t3=std::thread(time_check, conn, ctrl_bytes, handle); 
+    t2=std::thread(sendARP, handle);     //controlled ip의 데이터 누적량이 ctrl byte를 초과할 경우 arp redirection
+    t3=std::thread(time_check, conn, ctrl_bytes, handle);   //주기적으로 시간 check 해서 날짜가 바뀔경우 초기화
 
-    while(packetcontroler){
+    while(packetcontroler){ //packetcontroler가 true일경우만 thread1 돌리기
         struct pcap_pkthdr* header;
         const u_char* packet;
         int res = pcap_next_ex(handle, &header, &packet);
@@ -112,7 +109,7 @@ int main(int argc, char* argv[]) {
         t1=std::thread(packetProcess, ctrl_bytes, packet, header);
         t1.join();
     }
-
+    //프로그램 종료 준비
     pcap_close(handle);
     
     t2.join();

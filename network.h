@@ -15,7 +15,7 @@
 #define VECTOR std::vector<uint32_t>
 #define MAP std::map<Ip, Mac>
 
-struct EthArpPacket {
+struct EthArpPacket {	//ethernet패킷을 위한 헤더
 	EthHdr eth_;
 	ArpHdr arp_;
 };

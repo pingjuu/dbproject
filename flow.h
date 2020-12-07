@@ -45,7 +45,6 @@ public:
     void bytes_initial();
 };
 
-
 void network_stop();
 uint32_t address_ToCompare(const u_char* packet);
 void flow(const u_char* packet, struct pcap_pkthdr* header, int ctrl_bytes);

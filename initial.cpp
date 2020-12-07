@@ -33,7 +33,7 @@ void time_check(MYSQL *conn, int ctrl_bytes, pcap_t* handle){
         std::this_thread::sleep_for(std::chrono::seconds(5));  //스레드 낭비 씹오짐 담에 다시 생각하기
     }
 }
-void dbupdate(MYSQL *conn){
+void dbupdate(MYSQL *conn){     //update 쿼리 보냄
     FLOW_MAP::iterator it;
     for(it=ipmap.begin(); it!=ipmap.end(); it++){
         flowInfo f = it->first;

@@ -108,13 +108,12 @@ struct tcp_hdr
     u_int16_t th_urp;         // urgent pointer 
 };
 
- struct udp_hdr
- {
-     uint16_t sport;       // source port 
-     uint16_t dport;       // destination port 
-     uint16_t uh_ulen;        // length 
-     uint16_t uh_sum;         // checksum 
- };
+struct udp_hdr {
+    uint16_t sport;       // source port 
+    uint16_t dport;       // destination port 
+    uint16_t uh_ulen;        // length 
+    uint16_t uh_sum;         // checksum 
+};
 
 
 
